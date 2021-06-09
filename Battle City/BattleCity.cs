@@ -126,7 +126,7 @@ namespace Battle_City
             if(!string.IsNullOrEmpty(Game.GameOver))
             {
                 PushTimer.Stop();
-                Bitmap bitmap = new Bitmap(240, 100);
+                Bitmap bitmap = new Bitmap(400, 100);
                 Graphics temp_graphic = Graphics.FromImage(bitmap);
                 temp_graphic.DrawString(Game.GameOver, new Font("Arial", 26), new SolidBrush(Color.Purple), 0, 0);
                 graphic.DrawImage(bitmap, nullpoint.X, nullpoint.Y, cell_size * Battle_City.Game.Game.square_cell, cell_size * Battle_City.Game.Game.square_cell);

@@ -12,15 +12,16 @@ namespace Battle_City.Game
     public class Game
     {
         //Размерность игрового поля (реальное поле будет на 2 меньше, по краям стена из камней)
-        public const int square_cell = 42;
+        public const int square_cell = 24;
         //список объектов в игре
         public List<IObjectInGame> GameObjects;
         public List<Bot> Bots;
         //строка оповещения и завершении игры
         public string GameOver { get; private set; } = null;
-        public Tank PlayerTank;
-        public BaseCell PlayerBase;
-        public BaseCell EnemyBase;
+        public Tank Player1Tank;
+        public Tank Player2Tank;
+        public BaseCell Player1Base;
+        public BaseCell Player2Base;
         Random random = new Random((int)DateTime.Now.Ticks);
         public Game()
         {
@@ -46,58 +47,99 @@ namespace Battle_City.Game
             }
             //создаем базы
             //базы устанавливаем по координатам и заполняем очередь на создания танков
-            PlayerBase = new BaseCell(Entity.ETeam.Player) { X = 3, Y = square_cell - 4,TankQueue = StaticMethods.RandomTanks(Entity.ETeam.Player) };
-            EnemyBase = new BaseCell(Entity.ETeam.Enemy) { X = square_cell - 4, Y = 3, TankQueue = StaticMethods.RandomTanks(Entity.ETeam.Enemy) };
+            Player1Base = new BaseCell(Entity.ETeam.Player) { X = 3, Y = square_cell - 4,TankQueue = StaticMethods.RandomTanks(Entity.ETeam.Player) };
+            Player2Base = new BaseCell(Entity.ETeam.Enemy) { X = square_cell - 4, Y = 3, TankQueue = StaticMethods.RandomTanks(Entity.ETeam.Enemy) };
             
-            //Первым танком управляет игрок
-            PlayerTank = PlayerBase.TankQueue.Pop();
-            PlayerTank.X = 4;
-            PlayerTank.Y = square_cell - 4;
+            //Первым танком управляет игрок1
+            Player1Tank = Player1Base.TankQueue.Pop();
+            Player1Tank.X = 4;
+            Player1Tank.Y = square_cell - 4;
 
+            //Первым танком управляет игрок2
+            Player2Tank = Player2Base.TankQueue.Pop();
+            Player2Tank.Course = Tank.ECourse.Down;
+            Player2Tank.X = square_cell - 5;
+            Player2Tank.Y = 3;
 
+            GameObjects.Add(Player1Base);
+            GameObjects.Add(Player2Base);
+            GameObjects.Add(Player1Tank);
+            GameObjects.Add(Player2Tank);
 
-            GameObjects.Add(PlayerBase);
-            GameObjects.Add(EnemyBase);
-            GameObjects.Add(PlayerTank);
-
-            bot1 = new Bot();
+            //bot1 = new Bot();
         }
-        Bot bot1;
+        //Bot bot1;
 
 
         //Вызывает по таймеру из основной класс BattleCity
         public void TimerEventProcessor(Object myObject, EventArgs myEventArgs)
         {
+            //первый игрок
             //танк движется по направлению, которое соответствует последней нажатой клавише
-            if (playerMoves.Count > 0)
-                MoveTank(PlayerTank, playerMoves.Last());
+            if (player1Moves.Count > 0)
+                MoveTank(Player1Tank, player1Moves.Last());
 
             //Стрельба, ниже будет вызвана функция, которая обработает выстрел
-            if (playerShoot)
+            if (player1Shoot)
             {
-                PlayerTank.Shooting = true;
+                Player1Tank.Shooting = true;
             }
             //игрок подбирает Модуль
             //Выбираться первый Модуль, с которым пересекается моделька игрока
-            if (playerTakeItem)
+            if (player1TakeItem)
             {
-                Item item = GameObjects.OfType<Item>().FirstOrDefault(i => Math.Abs(i.X - PlayerTank.X) < PlayerTank.Collision && Math.Abs(i.Y - PlayerTank.Y) < PlayerTank.Collision);
+                Item item = GameObjects.OfType<Item>().FirstOrDefault(i => Math.Abs(i.X - Player1Tank.X) < Player1Tank.Collision && Math.Abs(i.Y - Player1Tank.Y) < Player1Tank.Collision);
                 if(item != null)
                 {
-                    if (item.Value.GetType() == typeof(Tank.EBase)) PlayerTank.SetBase(item.Value);
-                    if (item.Value.GetType() == typeof(Tank.ETower)) PlayerTank.SetTower(item.Value);
-                    if (item.Value.GetType() == typeof(Tank.ECannon)) PlayerTank.SetCannon(item.Value);
+                    if (item.Value.GetType() == typeof(Tank.EBase)) Player1Tank.SetBase(item.Value);
+                    if (item.Value.GetType() == typeof(Tank.ETower)) Player1Tank.SetTower(item.Value);
+                    if (item.Value.GetType() == typeof(Tank.ECannon)) Player1Tank.SetCannon(item.Value);
                 }
                 GameObjects.Remove(item);
             }
             //игрок уничтожает Модуль
             //уничтожается первый Модуль, с которым пересекается моделька игрока
-            if (playerDestroyItem)
+            if (player1DestroyItem)
             {
-                Item item = GameObjects.OfType<Item>().FirstOrDefault(i => Math.Abs(i.X - PlayerTank.X) < PlayerTank.Collision && Math.Abs(i.Y - PlayerTank.Y) < PlayerTank.Collision);
+                Item item = GameObjects.OfType<Item>().FirstOrDefault(i => Math.Abs(i.X - Player1Tank.X) < Player1Tank.Collision && Math.Abs(i.Y - Player1Tank.Y) < Player1Tank.Collision);
                 if (item != null)
                     GameObjects.Remove(item);
             }
+
+            //второй игрок
+            //танк движется по направлению, которое соответствует последней нажатой клавише
+            if (player2Moves.Count > 0)
+                MoveTank(Player2Tank, player2Moves.Last());
+
+            //Стрельба, ниже будет вызвана функция, которая обработает выстрел
+            if (player2Shoot)
+            {
+                Player2Tank.Shooting = true;
+            }
+            //игрок подбирает Модуль
+            //Выбираться первый Модуль, с которым пересекается моделька игрока
+            if (player2TakeItem)
+            {
+                Item item = GameObjects.OfType<Item>().FirstOrDefault(i => Math.Abs(i.X - Player2Tank.X) < Player2Tank.Collision && Math.Abs(i.Y - Player2Tank.Y) < Player2Tank.Collision);
+                if (item != null)
+                {
+                    if (item.Value.GetType() == typeof(Tank.EBase)) Player2Tank.SetBase(item.Value);
+                    if (item.Value.GetType() == typeof(Tank.ETower)) Player2Tank.SetTower(item.Value);
+                    if (item.Value.GetType() == typeof(Tank.ECannon)) Player2Tank.SetCannon(item.Value);
+                }
+                GameObjects.Remove(item);
+            }
+            //игрок уничтожает Модуль
+            //уничтожается первый Модуль, с которым пересекается моделька игрока
+            if (player2DestroyItem)
+            {
+                Item item = GameObjects.OfType<Item>().FirstOrDefault(i => Math.Abs(i.X - Player2Tank.X) < Player2Tank.Collision && Math.Abs(i.Y - Player2Tank.Y) < Player2Tank.Collision);
+                if (item != null)
+                    GameObjects.Remove(item);
+            }
+
+
+
 
             //Сделать расчет Выстрелов, Смертей, Работа Баз
             //BotTask();
@@ -159,15 +201,15 @@ namespace Battle_City.Game
         //смерти
         void EntityDeathTask()
         {
-            //если убили игрока или его базу то Игра завершаеться
-            if (PlayerBase.Health <= 0 || PlayerTank.Health <= 0)
+            //Выиграл второй игрок
+            if (Player1Base.Health <= 0)
             {
-                GameOver = "Game Over";
+                GameOver = "WINNER PLAYER 2";
             }
-            //"погибла" вражеская база то  Игра завершаеться победой
-            if (EnemyBase.Health <= 0)
+            //Выиграл первый игрок
+            if (Player2Base.Health <= 0)
             {
-                GameOver = "YOU WINNER";
+                GameOver = "WINNER PLAYER 1";
             }
             //все Tank у которых закончилось ХП, один случайный модуль танка выпадает
             List<Item> temp_items = new List<Item>();
@@ -193,18 +235,19 @@ namespace Battle_City.Game
         //работа базы
         void BaseTask()
         {
-            func(PlayerBase);
-            func(EnemyBase);
+            func(Player1Base);
+            func(Player2Base);
             
             void func(BaseCell @base)
             {
                 //если в игре меньше 2 союзных танка и в очереди есть танки на "создание"
-                if (GameObjects.OfType<Tank>().Where(t => t.Team == @base.Team).Count() < 2 && @base.TankQueue.Count > 0)
+                if (GameObjects.OfType<Tank>().Where(t => t.Team == @base.Team).Count() < 1 && @base.TankQueue.Count > 0)
                 {
                     //забираем танк из очереди
                     Tank tank = @base.TankQueue.Pop();
                     //для танков врага направление движения
-                    if (@base.Team == Entity.ETeam.Enemy) { tank.Course = Tank.ECourse.Down; }
+                    if (@base.Team == Entity.ETeam.Enemy) { tank.Course = Tank.ECourse.Down; Player2Tank = tank; }
+                    else { tank.Course = Tank.ECourse.Top; Player1Tank = tank; }
                     //и если танку ничего не мешаем ставим его на одну из соседних клеток с базой, без диагональных
                     if (!Crossing<Tank>(tank, @base.X + 1, @base.Y))
                     {
@@ -266,27 +309,39 @@ namespace Battle_City.Game
         //нажатия кнопок игроком
 
         //список нажатых игроком клавиш передвижения
-        private List<Tank.ECourse> playerMoves = new List<Tank.ECourse>();
+        private List<Tank.ECourse> player1Moves = new List<Tank.ECourse>();
+        private List<Tank.ECourse> player2Moves = new List<Tank.ECourse>();
 
         //нажата ли клавиша Выстрела
-        private bool playerShoot = false;
+        private bool player1Shoot = false;
+        private bool player2Shoot = false;
         //подбора предмета
-        private bool playerTakeItem = false;
+        private bool player1TakeItem = false;
+        private bool player2TakeItem = false;
         //Уничтожения предмета
-        private bool playerDestroyItem = false;
+        private bool player1DestroyItem = false;
+        private bool player2DestroyItem = false;
 
         //Обработка нажатых клавишь
         public void KeyDown(object sender, System.Windows.Forms.KeyEventArgs e)
         {
             switch (e.KeyCode)
             {
-                case System.Windows.Forms.Keys.W: playerMoves.Add(Tank.ECourse.Top); break;
-                case System.Windows.Forms.Keys.S: playerMoves.Add(Tank.ECourse.Down); break;
-                case System.Windows.Forms.Keys.D: playerMoves.Add(Tank.ECourse.Right); break;
-                case System.Windows.Forms.Keys.A: playerMoves.Add(Tank.ECourse.Left); break;
-                case System.Windows.Forms.Keys.Space: playerShoot = true; break;
-                case System.Windows.Forms.Keys.Z: playerTakeItem = true; break;
-                case System.Windows.Forms.Keys.M: playerDestroyItem = true; break;
+                case System.Windows.Forms.Keys.W: player1Moves.Add(Tank.ECourse.Top); break;
+                case System.Windows.Forms.Keys.S: player1Moves.Add(Tank.ECourse.Down); break;
+                case System.Windows.Forms.Keys.D: player1Moves.Add(Tank.ECourse.Right); break;
+                case System.Windows.Forms.Keys.A: player1Moves.Add(Tank.ECourse.Left); break;
+                case System.Windows.Forms.Keys.F: player1Shoot = true; break;
+                case System.Windows.Forms.Keys.E: player1TakeItem = true; break;
+                case System.Windows.Forms.Keys.R: player1DestroyItem = true; break;
+
+                case System.Windows.Forms.Keys.Up: player2Moves.Add(Tank.ECourse.Top); break;
+                case System.Windows.Forms.Keys.Down: player2Moves.Add(Tank.ECourse.Down); break;
+                case System.Windows.Forms.Keys.Right: player2Moves.Add(Tank.ECourse.Right); break;
+                case System.Windows.Forms.Keys.Left: player2Moves.Add(Tank.ECourse.Left); break;
+                case System.Windows.Forms.Keys.Delete: player2Shoot = true; break;
+                case System.Windows.Forms.Keys.PageUp: player2TakeItem = true; break;
+                case System.Windows.Forms.Keys.PageDown: player2DestroyItem = true; break;
             };
         }
         //Обработка отжатых клавишь
@@ -294,13 +349,21 @@ namespace Battle_City.Game
         {
             switch (e.KeyCode)
             {
-                case System.Windows.Forms.Keys.W: playerMoves.RemoveAll(c => c == Tank.ECourse.Top); break;
-                case System.Windows.Forms.Keys.S: playerMoves.RemoveAll(c => c == Tank.ECourse.Down); break;
-                case System.Windows.Forms.Keys.D: playerMoves.RemoveAll(c => c == Tank.ECourse.Right); break;
-                case System.Windows.Forms.Keys.A: playerMoves.RemoveAll(c => c == Tank.ECourse.Left); break;
-                case System.Windows.Forms.Keys.Space: playerShoot = false; break;
-                case System.Windows.Forms.Keys.Z: playerTakeItem = false; break;
-                case System.Windows.Forms.Keys.M: playerDestroyItem = false; break;
+                case System.Windows.Forms.Keys.W: player1Moves.RemoveAll(c => c == Tank.ECourse.Top); break;
+                case System.Windows.Forms.Keys.S: player1Moves.RemoveAll(c => c == Tank.ECourse.Down); break;
+                case System.Windows.Forms.Keys.D: player1Moves.RemoveAll(c => c == Tank.ECourse.Right); break;
+                case System.Windows.Forms.Keys.A: player1Moves.RemoveAll(c => c == Tank.ECourse.Left); break;
+                case System.Windows.Forms.Keys.F: player1Shoot = false; break;
+                case System.Windows.Forms.Keys.E: player1TakeItem = false; break;
+                case System.Windows.Forms.Keys.R: player1DestroyItem = false; break;
+
+                case System.Windows.Forms.Keys.Up: player2Moves.RemoveAll(c => c == Tank.ECourse.Top); break;
+                case System.Windows.Forms.Keys.Down: player2Moves.RemoveAll(c => c == Tank.ECourse.Down); break;
+                case System.Windows.Forms.Keys.Right: player2Moves.RemoveAll(c => c == Tank.ECourse.Right); break;
+                case System.Windows.Forms.Keys.Left: player2Moves.RemoveAll(c => c == Tank.ECourse.Left); break;
+                case System.Windows.Forms.Keys.Delete: player2Shoot = false; break;
+                case System.Windows.Forms.Keys.PageUp: player2TakeItem = false; break;
+                case System.Windows.Forms.Keys.PageDown: player2DestroyItem = false; break;
             };
         }
 
@@ -321,108 +384,108 @@ namespace Battle_City.Game
 
 
 
-        //A*
-        void BotTask()
-        {
-            if (bot1.Control is null)
-                bot1.Control = GameObjects.OfType<Tank>().FirstOrDefault(t => t != PlayerTank);
-            if (bot1.Target is null && bot1.Control is not null)
-                bot1.Target = GameObjects.OfType<Tank>().FirstOrDefault(t => t.Team != bot1.Control.Team);
-            if (bot1.Target is null && bot1.Control is null) return;
-            bot1.Ways.RemoveAll(q => q.Count <= 0);
-            if(bot1.Ways.Count == 0)
-            {
-                bot1.Ways = Ways(bot1);
-            }
-            if(bot1.Ways.Count > 0)
-            {
-                MoveTank(bot1.Control, bot1.Ways.First().Course);
-                bot1.Ways.First().Count--;
-            }
+        ////A*
+        //void BotTask()
+        //{
+        //    if (bot1.Control is null)
+        //        bot1.Control = GameObjects.OfType<Tank>().FirstOrDefault(t => t != PlayerTank);
+        //    if (bot1.Target is null && bot1.Control is not null)
+        //        bot1.Target = GameObjects.OfType<Tank>().FirstOrDefault(t => t.Team != bot1.Control.Team);
+        //    if (bot1.Target is null && bot1.Control is null) return;
+        //    bot1.Ways.RemoveAll(q => q.Count <= 0);
+        //    if(bot1.Ways.Count == 0)
+        //    {
+        //        bot1.Ways = Ways(bot1);
+        //    }
+        //    if(bot1.Ways.Count > 0)
+        //    {
+        //        MoveTank(bot1.Control, bot1.Ways.First().Course);
+        //        bot1.Ways.First().Count--;
+        //    }
 
-        }
+        //}
 
-        List<Way> Ways(Bot bot)
-        {
-            List<Node> nodes = new List<Node>();
+        //List<Way> Ways(Bot bot)
+        //{
+        //    List<Node> nodes = new List<Node>();
 
-            Node finishe = new Node() { X = bot.Target.X, Y = bot.Target.Y };
-            nodes.Add(new Node() { X = bot.Control.X, Y = bot.Control.Y, Opening = true, G = 0 });
+        //    Node finishe = new Node() { X = bot.Target.X, Y = bot.Target.Y };
+        //    nodes.Add(new Node() { X = bot.Control.X, Y = bot.Control.Y, Opening = true, G = 0 });
 
-            nodes[0].H = func_h(nodes[0]);
+        //    nodes[0].H = func_h(nodes[0]);
 
-            while (nodes.Any(n => n.Opening))
-            {
-                Node curr = nodes.Where(n => n.Opening).OrderBy(n => n.F).First();
-                if (curr.X == finishe.X && curr.Y == finishe.Y) break;
-                curr.Opening = false;
-                foreach (var neighbour in func_neighbours(curr))
-                {
-                    double temp_g = curr.G + 1;
+        //    while (nodes.Any(n => n.Opening))
+        //    {
+        //        Node curr = nodes.Where(n => n.Opening).OrderBy(n => n.F).First();
+        //        if (curr.X == finishe.X && curr.Y == finishe.Y) break;
+        //        curr.Opening = false;
+        //        foreach (var neighbour in func_neighbours(curr))
+        //        {
+        //            double temp_g = curr.G + 1;
 
-                    if (nodes.Contains(neighbour))
-                    {
-                        if (neighbour.G > temp_g)
-                        {
-                            neighbour.G = temp_g;
-                            neighbour.Before = curr;
-                        }
-                    }
-                    else
-                    {
-                        neighbour.G = temp_g;
-                        neighbour.Before = curr;
-                        neighbour.H = func_h(neighbour);
-                        nodes.Add(neighbour);
-                    }
-                }
-            }
-            List<Way> way = new List<Way>();
-            finishe.Before = nodes.Where(n => !n.Opening).OrderBy(n => n.H).First();
-            Node before = finishe;
-            while (before.Before != null)
-            {
-                Tank.ECourse course;
-                if (before.X > before.Before.X)
-                    course = Tank.ECourse.Right;
-                else if (before.X < before.Before.X)
-                    course = Tank.ECourse.Left;
-                else if (before.Y > before.Before.Y)
-                    course = Tank.ECourse.Down;
-                else
-                    course = Tank.ECourse.Top;
-                way.Add(new Way() { Course = course, Count = (int)(0.5F / bot.Control.Speed) });
-                before = before.Before;
-            }
-            return way;
+        //            if (nodes.Contains(neighbour))
+        //            {
+        //                if (neighbour.G > temp_g)
+        //                {
+        //                    neighbour.G = temp_g;
+        //                    neighbour.Before = curr;
+        //                }
+        //            }
+        //            else
+        //            {
+        //                neighbour.G = temp_g;
+        //                neighbour.Before = curr;
+        //                neighbour.H = func_h(neighbour);
+        //                nodes.Add(neighbour);
+        //            }
+        //        }
+        //    }
+        //    List<Way> way = new List<Way>();
+        //    finishe.Before = nodes.Where(n => !n.Opening).OrderBy(n => n.H).First();
+        //    Node before = finishe;
+        //    while (before.Before != null)
+        //    {
+        //        Tank.ECourse course;
+        //        if (before.X > before.Before.X)
+        //            course = Tank.ECourse.Right;
+        //        else if (before.X < before.Before.X)
+        //            course = Tank.ECourse.Left;
+        //        else if (before.Y > before.Before.Y)
+        //            course = Tank.ECourse.Down;
+        //        else
+        //            course = Tank.ECourse.Top;
+        //        way.Add(new Way() { Course = course, Count = (int)(0.5F / bot.Control.Speed) });
+        //        before = before.Before;
+        //    }
+        //    return way;
 
 
-            double func_h(Node node)
-            {
-                return Math.Sqrt(Math.Pow(node.X - finishe.X, 2) + Math.Pow(node.Y - finishe.Y, 2));
-            }
-            List<Node> func_neighbours(Node node)
-            {
-                List<Node> neighbours = new List<Node>();
-                neighbours.Add(func_neighbour(node.X - 0.5F, node.Y));
-                neighbours.Add(func_neighbour(node.X + 0.5F, node.Y));
-                neighbours.Add(func_neighbour(node.X, node.Y + 0.5F));
-                neighbours.Add(func_neighbour(node.X, node.Y - 0.5F));
-                neighbours.RemoveAll(e => e == null);
+        //    double func_h(Node node)
+        //    {
+        //        return Math.Sqrt(Math.Pow(node.X - finishe.X, 2) + Math.Pow(node.Y - finishe.Y, 2));
+        //    }
+        //    List<Node> func_neighbours(Node node)
+        //    {
+        //        List<Node> neighbours = new List<Node>();
+        //        neighbours.Add(func_neighbour(node.X - 0.5F, node.Y));
+        //        neighbours.Add(func_neighbour(node.X + 0.5F, node.Y));
+        //        neighbours.Add(func_neighbour(node.X, node.Y + 0.5F));
+        //        neighbours.Add(func_neighbour(node.X, node.Y - 0.5F));
+        //        neighbours.RemoveAll(e => e == null);
 
-                return neighbours;
-            }
-            Node func_neighbour(float x, float y)
-            {
-                Node temp_neighbour = null;
-                if (!Crossing<IObjectInGame>(bot.Control, x, y) && !nodes.Any(n => !n.Opening && n.X == x && n.Y == y))
-                {
-                    temp_neighbour = nodes.FirstOrDefault(n => n.Opening && n.X == x && n.Y == y);
-                    if (temp_neighbour == null)
-                        temp_neighbour = new Node() { X = x, Y = y, Opening = true };
-                }
-                return temp_neighbour;
-            }
-        }
+        //        return neighbours;
+        //    }
+        //    Node func_neighbour(float x, float y)
+        //    {
+        //        Node temp_neighbour = null;
+        //        if (!Crossing<IObjectInGame>(bot.Control, x, y) && !nodes.Any(n => !n.Opening && n.X == x && n.Y == y))
+        //        {
+        //            temp_neighbour = nodes.FirstOrDefault(n => n.Opening && n.X == x && n.Y == y);
+        //            if (temp_neighbour == null)
+        //                temp_neighbour = new Node() { X = x, Y = y, Opening = true };
+        //        }
+        //        return temp_neighbour;
+        //    }
+        //}
     }
 }
